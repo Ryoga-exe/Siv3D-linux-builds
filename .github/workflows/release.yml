@@ -1,0 +1,103 @@
+name: Release Linux SDK
+
+on:
+  push:
+    tags:
+      - "v*-r*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SIV3D_REF: "v0.6.16"
+  SIV3D_COMMIT: "fdc5662048a27974c989c3dac1fc38d41074e62b"
+  UBUNTU_VERSION: "22.04"
+  SDK_REVISION: "1"
+
+jobs:
+  release:
+    name: Build and release SDK
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Set release metadata
+        shell: bash
+        run: |
+          siv3d_version="${SIV3D_REF#v}"
+          echo "SIV3D_VERSION=${siv3d_version}" >> "${GITHUB_ENV}"
+          release_tag="v${siv3d_version}-r${SDK_REVISION}"
+          echo "RELEASE_TAG=${release_tag}" >> "${GITHUB_ENV}"
+
+      - name: Validate release tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_NAME}" != "${RELEASE_TAG}" ]]; then
+            echo "Expected tag ${RELEASE_TAG}, got ${GITHUB_REF_NAME}" >&2
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build SDK
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/sdk/Dockerfile
+          target: artifact
+          platforms: linux/amd64
+          outputs: type=local,dest=dist/sdk
+          build-args: |
+            UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+            SIV3D_REF=${{ env.SIV3D_REF }}
+            SIV3D_COMMIT=${{ env.SIV3D_COMMIT }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Validate SDK layout
+        shell: bash
+        run: |
+          test -f dist/sdk/include/Siv3D/Siv3D.hpp
+          test -f dist/sdk/lib/libSiv3D.a
+          test -d dist/sdk/share/Siv3D/resources/engine
+          test -f dist/sdk/licenses/OpenSiv3D-LICENSE
+
+      - name: Create release archive
+        id: package
+        shell: bash
+        run: |
+          asset_name="siv3d-v${SIV3D_VERSION}-linux-gnu-x86_64.tar.gz"
+          tar \
+            --sort=name \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            --mtime='@0' \
+            -C dist/sdk \
+            -cf - . | gzip -n > "dist/${asset_name}"
+          (cd dist && sha256sum "${asset_name}" > "${asset_name}.sha256")
+          echo "asset_name=${asset_name}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET_NAME: ${{ steps.package.outputs.asset_name }}
+        shell: bash
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Release ${RELEASE_TAG} already exists; increment SDK_REVISION instead of replacing it" >&2
+            exit 1
+          fi
+
+          gh release create \
+            "${RELEASE_TAG}" \
+            "dist/${ASSET_NAME}" \
+            "dist/${ASSET_NAME}.sha256" \
+            --target "${GITHUB_SHA}" \
+            --title "Siv3D ${SIV3D_VERSION} Linux SDK r${SDK_REVISION}" \
+            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
