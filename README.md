@@ -6,16 +6,17 @@ This repository builds OpenSiv3D with its official CMake configuration and publi
 
 This project is not affiliated with or endorsed by the OpenSiv3D project.
 
-## Supported environment
+## Compatibility
 
 - OpenSiv3D 0.6.16
-- Ubuntu 22.04
-- x86_64
-- GCC 11 and the system libstdc++ ABI
+- x86_64 Linux with glibc and libstdc++
+- Built and tested on Ubuntu 22.04 with GCC 11
 - CMake `Release` configuration
 
-The SDK is intended for native Ubuntu 22.04 builds.
-Compatibility with other distributions or Ubuntu releases is not guaranteed because Siv3D uses C++ system libraries such as OpenCV.
+Other glibc-based distributions, including Arch Linux, may work but are not currently tested.
+The SDK does not target musl-based distributions such as Alpine Linux. Applications are linked
+against the system libraries of the target distribution, so compatibility also depends on the
+available OpenCV, FFmpeg, and other library versions.
 
 ## Archive layout
 
@@ -37,12 +38,15 @@ licenses/
   OpenSiv3D-LICENSE
 ```
 
-The archive contains OpenSiv3D itself, but not its Ubuntu system dependencies.
-Applications must use the system libstdc++ ABI and link the system dependencies listed below.
+The archive contains OpenSiv3D itself, but not its Linux system dependencies.
+Applications must use the system libstdc++ ABI and link the corresponding dependencies from the
+target distribution.
 
-## System dependencies
+## System dependencies on Ubuntu
 
-Install the development packages required by OpenSiv3D before linking an application:
+On Ubuntu 22.04, install the development packages required by OpenSiv3D before linking an
+application. On other distributions, install the equivalent packages using the system package
+manager.
 
 ```sh
 sudo apt-get update
@@ -82,7 +86,7 @@ revision:
 
 ```text
 v0.6.16-r1
-siv3d-v0.6.16-ubuntu-22.04-x86_64.tar.gz
+siv3d-v0.6.16-linux-gnu-x86_64.tar.gz
 ```
 
 When changing the Siv3D version, update the pinned tag and commit in the Dockerfile and workflow
