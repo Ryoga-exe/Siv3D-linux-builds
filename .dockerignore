@@ -1,0 +1,5 @@
+*
+!.dockerignore
+!docker/
+!docker/sdk/
+!docker/sdk/Dockerfile
