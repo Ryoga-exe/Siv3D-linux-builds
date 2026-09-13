@@ -78,6 +78,7 @@ RUN cmake \
         -DBUILD_EXAMPLES=OFF \
         -DBUILD_JAVA=OFF \
         -DBUILD_opencv_apps=OFF \
+        -DBUILD_opencv_highgui=OFF \
         -DBUILD_opencv_python3=OFF \
         -DBUILD_PERF_TESTS=OFF \
         -DBUILD_TESTS=OFF \
