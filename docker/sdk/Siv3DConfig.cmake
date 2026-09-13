@@ -1,0 +1,33 @@
+get_filename_component(
+  _SIV3D_SDK_PREFIX
+  "${CMAKE_CURRENT_LIST_DIR}/../../.."
+  ABSOLUTE
+)
+
+include("${CMAKE_CURRENT_LIST_DIR}/Siv3DTargets.cmake")
+
+set_property(
+  TARGET Siv3D::Siv3D APPEND PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES "${_SIV3D_SDK_PREFIX}/include/opencv4"
+)
+set_property(
+  TARGET Siv3D::Siv3D APPEND PROPERTY
+  INTERFACE_LINK_DIRECTORIES "${_SIV3D_SDK_PREFIX}/lib"
+)
+
+file(
+  GLOB _SIV3D_OPENCV_THIRD_PARTY_LIBRARIES
+  "${_SIV3D_SDK_PREFIX}/lib/opencv4/3rdparty/*.a"
+)
+set_property(
+  TARGET Siv3D::Siv3D APPEND PROPERTY
+  INTERFACE_LINK_LIBRARIES
+    ${_SIV3D_OPENCV_THIRD_PARTY_LIBRARIES}
+    jpeg
+    m
+    rt
+    swscale
+)
+
+unset(_SIV3D_OPENCV_THIRD_PARTY_LIBRARIES)
+unset(_SIV3D_SDK_PREFIX)

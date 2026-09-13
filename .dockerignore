@@ -3,3 +3,4 @@
 !docker/
 !docker/sdk/
 !docker/sdk/Dockerfile
+!docker/sdk/Siv3DConfig.cmake

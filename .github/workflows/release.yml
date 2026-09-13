@@ -12,8 +12,10 @@ permissions:
 env:
   SIV3D_REF: "v0.6.16"
   SIV3D_COMMIT: "fdc5662048a27974c989c3dac1fc38d41074e62b"
+  OPENCV_REF: "4.5.1"
+  OPENCV_COMMIT: "1363496c1106606684d40447f5d1149b2c66a9f8"
   UBUNTU_VERSION: "22.04"
-  SDK_REVISION: "1"
+  SDK_REVISION: "2"
 
 jobs:
   release:
@@ -56,6 +58,8 @@ jobs:
             UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
             SIV3D_REF=${{ env.SIV3D_REF }}
             SIV3D_COMMIT=${{ env.SIV3D_COMMIT }}
+            OPENCV_REF=${{ env.OPENCV_REF }}
+            OPENCV_COMMIT=${{ env.OPENCV_COMMIT }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -63,9 +67,15 @@ jobs:
         shell: bash
         run: |
           test -f dist/sdk/include/Siv3D/Siv3D.hpp
+          test -f dist/sdk/include/opencv4/opencv2/core.hpp
           test -f dist/sdk/lib/libSiv3D.a
+          test -f dist/sdk/lib/libopencv_world.a
+          test -n "$(find dist/sdk/lib/opencv4/3rdparty -maxdepth 1 -name '*.a' -print -quit)"
           test -d dist/sdk/share/Siv3D/resources/engine
           test -f dist/sdk/licenses/OpenSiv3D-LICENSE
+          test -f dist/sdk/licenses/OpenSiv3D-THIRD-PARTY-NOTICES.hpp
+          test -f dist/sdk/licenses/OpenCV-LICENSE
+          test -f dist/sdk/licenses/OpenCV-quirc-LICENSE
 
       - name: Create release archive
         id: package
@@ -100,4 +110,4 @@ jobs:
             "dist/${ASSET_NAME}.sha256" \
             --target "${GITHUB_SHA}" \
             --title "Siv3D ${SIV3D_VERSION} Linux SDK r${SDK_REVISION}" \
-            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
+            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Includes a pinned static OpenCV ${OPENCV_REF}. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
