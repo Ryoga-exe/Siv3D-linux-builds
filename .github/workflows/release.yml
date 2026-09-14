@@ -14,6 +14,8 @@ env:
   SIV3D_COMMIT: "fdc5662048a27974c989c3dac1fc38d41074e62b"
   OPENCV_REF: "4.5.1"
   OPENCV_COMMIT: "1363496c1106606684d40447f5d1149b2c66a9f8"
+  FFMPEG_REF: "n4.4.8"
+  FFMPEG_COMMIT: "209fceb8783e7996d04f35503d62fae0c42f2575"
   SOUNDTOUCH_REF: "2.3.1"
   SOUNDTOUCH_COMMIT: "e1f315f5358d9db5cee35a7a2886425489fcefe8"
   UBUNTU_VERSION: "22.04"
@@ -30,6 +32,8 @@ jobs:
         run: |
           siv3d_version="${SIV3D_REF#v}"
           echo "SIV3D_VERSION=${siv3d_version}" >> "${GITHUB_ENV}"
+          ffmpeg_version="${FFMPEG_REF#n}"
+          echo "FFMPEG_VERSION=${ffmpeg_version}" >> "${GITHUB_ENV}"
           release_tag="v${siv3d_version}-r${SDK_REVISION}"
           echo "RELEASE_TAG=${release_tag}" >> "${GITHUB_ENV}"
 
@@ -62,6 +66,8 @@ jobs:
             SIV3D_COMMIT=${{ env.SIV3D_COMMIT }}
             OPENCV_REF=${{ env.OPENCV_REF }}
             OPENCV_COMMIT=${{ env.OPENCV_COMMIT }}
+            FFMPEG_REF=${{ env.FFMPEG_REF }}
+            FFMPEG_COMMIT=${{ env.FFMPEG_COMMIT }}
             SOUNDTOUCH_REF=${{ env.SOUNDTOUCH_REF }}
             SOUNDTOUCH_COMMIT=${{ env.SOUNDTOUCH_COMMIT }}
           cache-from: type=gha
@@ -77,6 +83,21 @@ jobs:
           test -f dist/sdk/lib/libSoundTouch.so.2.3.1
           test -L dist/sdk/lib/libSoundTouch.so
           test -L dist/sdk/lib/libSoundTouch.so.2
+          test -f dist/sdk/lib/libavcodec.so.58.134.100
+          test -L dist/sdk/lib/libavcodec.so
+          test -L dist/sdk/lib/libavcodec.so.58
+          test -f dist/sdk/lib/libavformat.so.58.76.100
+          test -L dist/sdk/lib/libavformat.so
+          test -L dist/sdk/lib/libavformat.so.58
+          test -f dist/sdk/lib/libavutil.so.56.70.100
+          test -L dist/sdk/lib/libavutil.so
+          test -L dist/sdk/lib/libavutil.so.56
+          test -f dist/sdk/lib/libswresample.so.3.9.100
+          test -L dist/sdk/lib/libswresample.so
+          test -L dist/sdk/lib/libswresample.so.3
+          test -f dist/sdk/lib/libswscale.so.5.9.100
+          test -L dist/sdk/lib/libswscale.so
+          test -L dist/sdk/lib/libswscale.so.5
           test -n "$(find dist/sdk/lib/opencv4/3rdparty -maxdepth 1 -name '*.a' -print -quit)"
           test -d dist/sdk/share/Siv3D/resources/engine
           test -f dist/sdk/licenses/OpenSiv3D-LICENSE
@@ -84,7 +105,11 @@ jobs:
           test -f dist/sdk/licenses/OpenCV-LICENSE
           test -f dist/sdk/licenses/OpenCV-quirc-LICENSE
           test -f dist/sdk/licenses/SoundTouch-COPYING.txt
+          test -f dist/sdk/licenses/FFmpeg-LICENSE.md
+          test -f dist/sdk/licenses/FFmpeg-COPYING.LGPLv2.1
+          test -f dist/sdk/licenses/FFmpeg-BUILD.txt
           test -f dist/sdk/sources/SoundTouch-${SOUNDTOUCH_REF}.tar.gz
+          test -f dist/sdk/sources/FFmpeg-${FFMPEG_VERSION}.tar.gz
 
       - name: Create release archive
         id: package
@@ -119,4 +144,4 @@ jobs:
             "dist/${ASSET_NAME}.sha256" \
             --target "${GITHUB_SHA}" \
             --title "Siv3D ${SIV3D_VERSION} Linux SDK r${SDK_REVISION}" \
-            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Includes a pinned static OpenCV ${OPENCV_REF} and shared SoundTouch ${SOUNDTOUCH_REF}, together with the corresponding SoundTouch source. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
+            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Includes a pinned static OpenCV ${OPENCV_REF}, shared LGPL FFmpeg ${FFMPEG_VERSION}, and shared SoundTouch ${SOUNDTOUCH_REF}, together with the corresponding LGPL sources and FFmpeg build configuration. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."

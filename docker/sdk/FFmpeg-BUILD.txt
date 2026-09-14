@@ -1,0 +1,29 @@
+FFmpeg 4.4.8 is built from commit
+209fceb8783e7996d04f35503d62fae0c42f2575 with GCC 11 on Ubuntu 22.04.
+
+Configure options:
+
+  --prefix=/opt/ffmpeg
+  --libdir=/opt/ffmpeg/lib
+  --shlibdir=/opt/ffmpeg/lib
+  --incdir=/opt/ffmpeg/include
+  --pkgconfigdir=/opt/ffmpeg/lib/pkgconfig
+  --cc="ccache gcc"
+  --cxx="ccache g++"
+  --enable-shared
+  --disable-static
+  --enable-pic
+  --disable-programs
+  --disable-doc
+  --disable-debug
+  --disable-gpl
+  --disable-version3
+  --disable-nonfree
+  --disable-autodetect
+  --enable-zlib
+  --disable-avdevice
+  --disable-avfilter
+  --disable-postproc
+
+The build is dynamically linked and contains no GPL or nonfree components.
+The corresponding complete source is provided as sources/FFmpeg-4.4.8.tar.gz.

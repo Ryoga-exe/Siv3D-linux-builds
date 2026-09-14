@@ -18,9 +18,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         gcc \
         git \
         libasound2-dev \
-        libavcodec-dev \
-        libavformat-dev \
-        libavutil-dev \
         libboost-dev \
         libcurl4-openssl-dev \
         libfreetype6-dev \
@@ -36,13 +33,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libopus-dev \
         libopusfile-dev \
         libpng-dev \
-        libswresample-dev \
-        libswscale-dev \
         libtiff-dev \
         libturbojpeg0-dev \
         libvorbis-dev \
         libwebp-dev \
         libxft-dev \
+        make \
+        nasm \
         ninja-build \
         pkg-config \
         uuid-dev \
@@ -51,6 +48,59 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     rm -rf /var/lib/apt/lists/*
 
 RUN test "$(dpkg --print-architecture)" = "amd64"
+
+FROM toolchain AS ffmpeg-build
+
+ARG FFMPEG_REF=n4.4.8
+ARG FFMPEG_COMMIT=209fceb8783e7996d04f35503d62fae0c42f2575
+
+RUN git init /tmp/FFmpeg && \
+    git -C /tmp/FFmpeg remote add origin https://github.com/FFmpeg/FFmpeg.git && \
+    git -C /tmp/FFmpeg fetch --depth 1 origin "refs/tags/${FFMPEG_REF}" && \
+    git -C /tmp/FFmpeg checkout --detach FETCH_HEAD && \
+    test "$(git -C /tmp/FFmpeg rev-parse HEAD)" = "${FFMPEG_COMMIT}"
+
+RUN cd /tmp/FFmpeg && \
+    ./configure \
+        --prefix=/opt/ffmpeg \
+        --libdir=/opt/ffmpeg/lib \
+        --shlibdir=/opt/ffmpeg/lib \
+        --incdir=/opt/ffmpeg/include \
+        --pkgconfigdir=/opt/ffmpeg/lib/pkgconfig \
+        --cc="ccache gcc" \
+        --cxx="ccache g++" \
+        --enable-shared \
+        --disable-static \
+        --enable-pic \
+        --disable-programs \
+        --disable-doc \
+        --disable-debug \
+        --disable-gpl \
+        --disable-version3 \
+        --disable-nonfree \
+        --disable-autodetect \
+        --enable-zlib \
+        --disable-avdevice \
+        --disable-avfilter \
+        --disable-postproc
+
+RUN --mount=type=cache,id=ffmpeg-ccache,target=/var/cache/ccache \
+    make -C /tmp/FFmpeg -j"$(nproc)" && \
+    make -C /tmp/FFmpeg install
+
+COPY docker/sdk/FFmpeg-BUILD.txt /tmp/FFmpeg-BUILD.txt
+
+RUN mkdir -p /opt/ffmpeg/licenses /opt/ffmpeg/sources && \
+    install -m 0644 /tmp/FFmpeg/LICENSE.md /opt/ffmpeg/licenses/FFmpeg-LICENSE.md && \
+    install -m 0644 \
+        /tmp/FFmpeg/COPYING.LGPLv2.1 \
+        /opt/ffmpeg/licenses/FFmpeg-COPYING.LGPLv2.1 && \
+    install -m 0644 /tmp/FFmpeg-BUILD.txt /opt/ffmpeg/licenses/FFmpeg-BUILD.txt && \
+    git -C /tmp/FFmpeg archive \
+        --format=tar.gz \
+        --prefix="FFmpeg-${FFMPEG_REF#n}/" \
+        --output="/opt/ffmpeg/sources/FFmpeg-${FFMPEG_REF#n}.tar.gz" \
+        HEAD
 
 FROM toolchain AS soundtouch-build
 
@@ -92,6 +142,11 @@ FROM toolchain AS opencv-build
 
 ARG OPENCV_REF=4.5.1
 ARG OPENCV_COMMIT=1363496c1106606684d40447f5d1149b2c66a9f8
+
+COPY --from=ffmpeg-build /opt/ffmpeg /opt/ffmpeg
+
+ENV PKG_CONFIG_PATH=/opt/ffmpeg/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/ffmpeg/lib
 
 RUN git init /tmp/OpenCV && \
     git -C /tmp/OpenCV remote add origin https://github.com/opencv/opencv.git && \
@@ -159,8 +214,10 @@ ARG SIV3D_COMMIT=fdc5662048a27974c989c3dac1fc38d41074e62b
 
 COPY --from=opencv-build /opt/opencv /opt/opencv
 COPY --from=soundtouch-build /opt/soundtouch /opt/soundtouch
+COPY --from=ffmpeg-build /opt/ffmpeg /opt/ffmpeg
 
-ENV PKG_CONFIG_PATH=/opt/opencv/lib/pkgconfig:/opt/soundtouch/lib/pkgconfig
+ENV PKG_CONFIG_PATH=/opt/opencv/lib/pkgconfig:/opt/soundtouch/lib/pkgconfig:/opt/ffmpeg/lib/pkgconfig \
+    LD_LIBRARY_PATH=/opt/soundtouch/lib:/opt/ffmpeg/lib
 
 RUN git init /tmp/OpenSiv3D && \
     git -C /tmp/OpenSiv3D remote add origin https://github.com/Siv3D/OpenSiv3D.git && \
@@ -200,6 +257,13 @@ RUN cmake --install /tmp/OpenSiv3D/Linux/build && \
         cp -a /opt/opencv/lib/opencv4/3rdparty /opt/siv3d-sdk/lib/opencv4/3rdparty; \
     fi && \
     cp -a /opt/soundtouch/lib/libSoundTouch.so* /opt/siv3d-sdk/lib/ && \
+    cp -a \
+        /opt/ffmpeg/lib/libavcodec.so* \
+        /opt/ffmpeg/lib/libavformat.so* \
+        /opt/ffmpeg/lib/libavutil.so* \
+        /opt/ffmpeg/lib/libswresample.so* \
+        /opt/ffmpeg/lib/libswscale.so* \
+        /opt/siv3d-sdk/lib/ && \
     cp -a /tmp/OpenSiv3D/Linux/App/resources /opt/siv3d-sdk/share/Siv3D/resources && \
     install -m 0644 /tmp/OpenSiv3D/LICENSE /opt/siv3d-sdk/licenses/OpenSiv3D-LICENSE && \
     install -m 0644 \
@@ -207,7 +271,9 @@ RUN cmake --install /tmp/OpenSiv3D/Linux/build && \
         /opt/siv3d-sdk/licenses/OpenSiv3D-THIRD-PARTY-NOTICES.hpp && \
     cp -a /opt/opencv/licenses/. /opt/siv3d-sdk/licenses/ && \
     cp -a /opt/soundtouch/licenses/. /opt/siv3d-sdk/licenses/ && \
-    cp -a /opt/soundtouch/sources/. /opt/siv3d-sdk/sources/
+    cp -a /opt/ffmpeg/licenses/. /opt/siv3d-sdk/licenses/ && \
+    cp -a /opt/soundtouch/sources/. /opt/siv3d-sdk/sources/ && \
+    cp -a /opt/ffmpeg/sources/. /opt/siv3d-sdk/sources/
 
 FROM siv3d-build AS test
 

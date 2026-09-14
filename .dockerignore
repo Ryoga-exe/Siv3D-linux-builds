@@ -3,4 +3,5 @@
 !docker/
 !docker/sdk/
 !docker/sdk/Dockerfile
+!docker/sdk/FFmpeg-BUILD.txt
 !docker/sdk/Siv3DConfig.cmake
