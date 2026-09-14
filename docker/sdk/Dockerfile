@@ -128,6 +128,11 @@ RUN cmake \
 RUN --mount=type=cache,id=soundtouch-ccache,target=/var/cache/ccache \
     cmake --build /tmp/SoundTouch/build --parallel && \
     cmake --install /tmp/SoundTouch/build && \
+    sed -i \
+        's|^Cflags:.*$|Cflags: -I${includedir}|' \
+        /opt/soundtouch/lib/pkgconfig/soundtouch.pc && \
+    grep -Fqx 'Cflags: -I${includedir}' \
+        /opt/soundtouch/lib/pkgconfig/soundtouch.pc && \
     mkdir -p /opt/soundtouch/licenses /opt/soundtouch/sources && \
     install -m 0644 \
         /tmp/SoundTouch/COPYING.TXT \
