@@ -14,8 +14,10 @@ env:
   SIV3D_COMMIT: "fdc5662048a27974c989c3dac1fc38d41074e62b"
   OPENCV_REF: "4.5.1"
   OPENCV_COMMIT: "1363496c1106606684d40447f5d1149b2c66a9f8"
+  SOUNDTOUCH_REF: "2.3.1"
+  SOUNDTOUCH_COMMIT: "e1f315f5358d9db5cee35a7a2886425489fcefe8"
   UBUNTU_VERSION: "22.04"
-  SDK_REVISION: "2"
+  SDK_REVISION: "3"
 
 jobs:
   release:
@@ -60,6 +62,8 @@ jobs:
             SIV3D_COMMIT=${{ env.SIV3D_COMMIT }}
             OPENCV_REF=${{ env.OPENCV_REF }}
             OPENCV_COMMIT=${{ env.OPENCV_COMMIT }}
+            SOUNDTOUCH_REF=${{ env.SOUNDTOUCH_REF }}
+            SOUNDTOUCH_COMMIT=${{ env.SOUNDTOUCH_COMMIT }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -70,12 +74,17 @@ jobs:
           test -f dist/sdk/include/opencv4/opencv2/core.hpp
           test -f dist/sdk/lib/libSiv3D.a
           test -f dist/sdk/lib/libopencv_world.a
+          test -f dist/sdk/lib/libSoundTouch.so.2.3.1
+          test -L dist/sdk/lib/libSoundTouch.so
+          test -L dist/sdk/lib/libSoundTouch.so.2
           test -n "$(find dist/sdk/lib/opencv4/3rdparty -maxdepth 1 -name '*.a' -print -quit)"
           test -d dist/sdk/share/Siv3D/resources/engine
           test -f dist/sdk/licenses/OpenSiv3D-LICENSE
           test -f dist/sdk/licenses/OpenSiv3D-THIRD-PARTY-NOTICES.hpp
           test -f dist/sdk/licenses/OpenCV-LICENSE
           test -f dist/sdk/licenses/OpenCV-quirc-LICENSE
+          test -f dist/sdk/licenses/SoundTouch-COPYING.txt
+          test -f dist/sdk/sources/SoundTouch-${SOUNDTOUCH_REF}.tar.gz
 
       - name: Create release archive
         id: package
@@ -110,4 +119,4 @@ jobs:
             "dist/${ASSET_NAME}.sha256" \
             --target "${GITHUB_SHA}" \
             --title "Siv3D ${SIV3D_VERSION} Linux SDK r${SDK_REVISION}" \
-            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Includes a pinned static OpenCV ${OPENCV_REF}. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
+            --notes "Unofficial OpenSiv3D ${SIV3D_VERSION} SDK for x86_64 Linux with glibc and libstdc++. Includes a pinned static OpenCV ${OPENCV_REF} and shared SoundTouch ${SOUNDTOUCH_REF}, together with the corresponding SoundTouch source. Built and tested on Ubuntu ${UBUNTU_VERSION} from ${SIV3D_COMMIT}, using GCC 11 and CMake Release configuration."
